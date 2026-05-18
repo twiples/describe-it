@@ -1,0 +1,1322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Describe It! — prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Varela+Round&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Little Legends palette */
+    --bg: #F5EFD9;            /* warm cream */
+    --card: #FFFFFF;          /* cards pop against the cream */
+    --card-2: #FBF6E5;        /* lighter cream wash */
+    --ink: #2C2814;           /* deep warm brown — not pure black */
+    --muted: #7A6F4F;         /* warm muted brown */
+    --primary: #FFA000;       /* bright orange accent */
+    --primary-ink: #2C2814;   /* readable text on the orange */
+    --yellow: #FFEC66;        /* sunny yellow */
+    --blue: #73A8D3;          /* soft sky blue */
+    --green: #6FB672;         /* warmer green */
+    --red: #E04A3F;           /* warmer red */
+    --shadow: 0 6px 20px rgba(60, 45, 10, 0.08);
+    --shadow-lg: 0 14px 36px rgba(60, 45, 10, 0.14);
+
+    /* EET bead colors stay close to the actual tool */
+    --bead-group: #6FB672;
+    --bead-does: #4A90D9;
+    --bead-looks: #F5EFD9;
+    --bead-covered: #94663D;
+    --bead-parts: #F78CBF;
+    --bead-lives: #FFFFFF;
+    --bead-funfact: #8C8C99;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: 'Varela Round', -apple-system, BlinkMacSystemFont, "SF Pro Rounded", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .display { font-family: 'Cherry Bomb One', system-ui, sans-serif; font-weight: 400; letter-spacing: 0.02em; }
+  .app {
+    max-width: 900px; margin: 0 auto;
+    padding: 24px max(20px, env(safe-area-inset-left)) calc(60px + env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-right));
+  }
+  body { overscroll-behavior-y: contain; }
+  button, [role="button"], .animal-card, .bead-cell, .change-link {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .hero { text-align: center; padding: 16px 0 22px; }
+  .hero h1 {
+    font-family: 'Cherry Bomb One', system-ui, sans-serif;
+    font-size: 56px; font-weight: 400; margin: 0;
+    letter-spacing: 0.01em; line-height: 1.05;
+    color: var(--ink);
+    text-shadow: 3px 3px 0 var(--yellow);
+  }
+  .hero p { font-size: 18px; color: var(--muted); margin: 10px 0 0; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+  /* Ornamental divider — borrowed from the template's ❊ motif */
+  .ornament {
+    text-align: center;
+    color: var(--primary);
+    font-size: 22px;
+    margin: 8px 0 14px;
+    line-height: 1;
+    user-select: none;
+  }
+
+  .subject-card {
+    background: var(--card);
+    border-radius: 32px;
+    box-shadow: var(--shadow-lg);
+    padding: 28px 22px;
+    text-align: center;
+    margin-bottom: 14px;
+    transition: all 0.35s cubic-bezier(0.22, 1.2, 0.36, 1);
+    border: 3px solid transparent;
+  }
+  .subject-card.detected {
+    background: linear-gradient(135deg, #FFF6D8 0%, #FFFFFF 100%);
+    border-color: var(--yellow);
+    animation: shimmer 0.7s cubic-bezier(0.22, 1.6, 0.36, 1);
+  }
+  @keyframes shimmer {
+    0%   { transform: scale(0.94); }
+    50%  { transform: scale(1.03); }
+    100% { transform: scale(1); }
+  }
+  .subject-emoji { font-size: 80px; line-height: 1; }
+  .subject-name {
+    font-family: 'Cherry Bomb One', system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 36px; margin-top: 10px; letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+  .subject-card.unknown .subject-emoji { font-size: 60px; }
+  .subject-card.unknown .subject-name {
+    font-size: 22px; color: var(--ink); font-weight: 400;
+    font-family: 'Cherry Bomb One', system-ui, sans-serif;
+  }
+  .subject-card .small {
+    font-size: 13px; color: var(--muted); margin-top: 8px;
+  }
+  .subject-card .change-link {
+    display: inline-block;
+    margin-top: 8px;
+    color: var(--primary); font-size: 14px; cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .beads-hero {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .bead-cell {
+    background: var(--card);
+    border-radius: 22px;
+    padding: 12px 6px 14px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    transition: all 0.35s cubic-bezier(0.22, 1.2, 0.36, 1);
+    opacity: 0.55;
+    cursor: pointer;
+    position: relative;
+    border: 2px solid transparent;
+  }
+  .bead-cell.lit { border-color: var(--yellow); }
+  .bead-cell.lit {
+    opacity: 1;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(20,20,40,0.10);
+    animation: pop 0.55s cubic-bezier(0.22, 1.6, 0.36, 1);
+  }
+  @keyframes pop {
+    0%   { transform: scale(0.9) translateY(0); }
+    40%  { transform: scale(1.18) translateY(-4px); }
+    100% { transform: scale(1) translateY(-2px); }
+  }
+  .bead-circle {
+    width: 40px; height: 40px; border-radius: 50%;
+    margin: 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 16px;
+    border: 1px solid rgba(0,0,0,0.12);
+    transition: filter 0.3s ease;
+    filter: grayscale(70%);
+  }
+  .bead-cell.lit .bead-circle { filter: grayscale(0%); }
+  .bead-cell.light .bead-circle { color: rgba(0,0,0,0.7); }
+  .bead-label {
+    font-size: 12px; font-weight: 700; color: var(--ink);
+    margin-top: 6px; letter-spacing: 0.3px;
+  }
+  .bead-cell.lit .bead-label { color: var(--ink); }
+  .bead-cell.lit .bead-label::after { content: " ✓"; color: var(--green); }
+  .bead-desc {
+    font-size: 10px; line-height: 1.25;
+    color: var(--muted); font-weight: 500;
+    margin-top: 3px;
+    padding: 0 2px;
+    /* allow one wrap but stay compact */
+    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 480px) {
+    .bead-label { font-size: 11px; }
+    .bead-desc { font-size: 9px; }
+  }
+
+  .talk-card {
+    background: var(--card);
+    border-radius: 32px;
+    box-shadow: var(--shadow-lg);
+    padding: 26px;
+    margin-bottom: 14px;
+  }
+  .talk-row {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .mic-btn-big {
+    width: 124px; height: 124px; border-radius: 50%;
+    background: var(--primary); color: var(--primary-ink);
+    border: 4px solid var(--ink); cursor: pointer; font-size: 52px;
+    box-shadow: 6px 6px 0 var(--ink);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .mic-btn-big:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--ink); }
+  .mic-btn-big:active { transform: translate(3px, 3px); box-shadow: 3px 3px 0 var(--ink); }
+  .mic-btn-big.listening {
+    background: var(--red); color: #fff;
+    animation: pulse 1.2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 6px 6px 0 var(--ink), 0 0 0 0 rgba(224, 74, 63, 0.5); }
+    100% { box-shadow: 6px 6px 0 var(--ink), 0 0 0 28px rgba(224, 74, 63, 0); }
+  }
+  .mic-status { font-size: 17px; color: var(--muted); text-align: center; font-weight: 600; }
+
+  .transcript-pane {
+    width: 100%;
+    background: var(--card-2);
+    border-radius: 22px;
+    padding: 18px;
+    min-height: 110px;
+    font-size: 20px; line-height: 1.5;
+  }
+  .transcript-pane:empty::before {
+    content: "Tell me what it is, what it does, what it looks like — anything you want to describe about it.";
+    color: var(--muted); font-style: italic;
+  }
+  .transcript-pane .interim { color: var(--muted); }
+
+  .progress-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 6px 4px 14px; font-size: 16px; font-weight: 600;
+  }
+  .progress-row .count { color: var(--primary); }
+  .progress-row .full { color: var(--green); }
+
+  .matched-list {
+    background: var(--card);
+    border-radius: 26px;
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .matched-list:empty { display: none; }
+  .matched-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 4px; border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .matched-row:last-child { border-bottom: none; }
+  .matched-row .dot {
+    width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+  .matched-row .label {
+    font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: 0.3px;
+    width: 90px; flex-shrink: 0;
+  }
+  .matched-row .phrase { font-size: 16px; }
+  .matched-row .phrase mark {
+    background: var(--yellow);
+    color: var(--ink);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  .hint-banner {
+    background: #FFF6D8; color: var(--ink);
+    border-radius: 22px;
+    border: 2px solid var(--yellow);
+    padding: 14px 18px;
+    margin-bottom: 14px;
+    display: none; align-items: center; gap: 10px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .hint-banner .hint-bead {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.1);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 14px;
+  }
+  .hint-banner.show { display: flex; }
+  .hint-banner .dismiss {
+    margin-left: auto; background: none; border: none;
+    color: var(--muted); cursor: pointer; font-size: 18px;
+    padding: 2px 8px; border-radius: 8px;
+  }
+
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    flex: 1; min-width: 140px; padding: 16px 18px;
+    border: 3px solid var(--ink); border-radius: 22px;
+    font-family: 'Varela Round', system-ui, sans-serif;
+    font-size: 17px; font-weight: 400; letter-spacing: 0.02em;
+    cursor: pointer; color: var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+  .btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
+  .btn-primary { background: var(--primary); }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-ghost {
+    background: var(--card);
+    color: var(--ink);
+  }
+
+  .speech-error { color: var(--red); font-size: 14px; text-align: center; margin-top: 6px; }
+
+  .summary-hero { text-align: center; padding: 12px 0 8px; }
+  .summary-hero .emoji { font-size: 100px; line-height: 1; }
+  .summary-hero h2 {
+    font-family: 'Cherry Bomb One', system-ui, sans-serif;
+    font-size: 44px; font-weight: 400; margin: 12px 0 6px;
+    text-shadow: 3px 3px 0 var(--yellow);
+  }
+  .summary-hero p { font-size: 18px; color: var(--muted); margin: 0; }
+  .summary-hero .score {
+    font-size: 22px; font-weight: 400; color: var(--ink);
+    margin-top: 12px;
+    font-family: 'Cherry Bomb One', system-ui, sans-serif;
+  }
+  .summary-hero .score.full { color: var(--green); }
+
+  .recap-list { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+  .recap-row {
+    background: var(--card); border-radius: 22px; box-shadow: var(--shadow);
+    padding: 16px; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .recap-row.unlit { opacity: 0.55; }
+  .recap-bead {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 16px; flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+  .recap-bead.light { color: rgba(0,0,0,0.7); }
+  .recap-body { flex: 1; min-width: 0; }
+  .recap-label { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; }
+  .recap-content { font-size: 17px; line-height: 1.4; margin-top: 4px; }
+  .recap-content.unmatched { color: var(--muted); font-style: italic; }
+  .recap-content mark {
+    background: var(--yellow);
+    color: var(--ink);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  .transcript-box {
+    background: var(--card-2); padding: 18px;
+    border-radius: 22px; margin: 16px 0;
+    font-size: 17px; line-height: 1.6;
+    border: 2px solid rgba(60,45,10,0.08);
+  }
+  .transcript-box h3 { margin: 0 0 10px 0; font-size: 12px; color: var(--muted); letter-spacing: 0.5px; font-weight: 700; }
+
+  .hidden { display: none !important; }
+
+  /* ===== Celebration ===== */
+  .confetti {
+    position: fixed; top: -24px;
+    width: 12px; height: 18px;
+    border-radius: 3px;
+    pointer-events: none;
+    z-index: 9999;
+    animation: confetti-fall linear forwards;
+    will-change: transform, opacity;
+  }
+  @keyframes confetti-fall {
+    0%   { transform: translateY(-24px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0.55; }
+  }
+
+  body.celebrating .bead-cell {
+    animation: bead-party 0.6s ease-in-out 4;
+  }
+  body.celebrating .bead-cell:nth-child(1) { animation-delay: 0.00s; }
+  body.celebrating .bead-cell:nth-child(2) { animation-delay: 0.05s; }
+  body.celebrating .bead-cell:nth-child(3) { animation-delay: 0.10s; }
+  body.celebrating .bead-cell:nth-child(4) { animation-delay: 0.15s; }
+  body.celebrating .bead-cell:nth-child(5) { animation-delay: 0.20s; }
+  body.celebrating .bead-cell:nth-child(6) { animation-delay: 0.25s; }
+  body.celebrating .bead-cell:nth-child(7) { animation-delay: 0.30s; }
+  @keyframes bead-party {
+    0%, 100% { transform: translateY(-2px) rotate(0deg) scale(1); }
+    25%      { transform: translateY(-12px) rotate(-6deg) scale(1.08); }
+    75%      { transform: translateY(-12px) rotate(6deg) scale(1.08); }
+  }
+
+  .celebrate-banner {
+    position: fixed; top: 26%; left: 50%;
+    transform: translate(-50%, -30%) scale(0) rotate(-8deg);
+    font-family: 'Cherry Bomb One', system-ui, sans-serif;
+    font-size: 56px; color: var(--ink);
+    text-shadow: 4px 4px 0 var(--yellow), 8px 8px 0 var(--primary);
+    background: var(--card);
+    padding: 22px 36px;
+    border-radius: 36px;
+    border: 4px solid var(--ink);
+    box-shadow: 8px 8px 0 var(--ink);
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+    white-space: nowrap;
+    transition: transform 0.5s cubic-bezier(0.22, 1.7, 0.36, 1), opacity 0.3s ease;
+  }
+  .celebrate-banner.show {
+    transform: translate(-50%, -50%) scale(1) rotate(-4deg);
+    opacity: 1;
+  }
+  @media (max-width: 600px) {
+    .celebrate-banner { font-size: 38px; padding: 16px 24px; }
+  }
+
+  /* ===== Mobile layout (phone portrait) ===== */
+  @media (max-width: 600px) {
+    .app { padding: 14px 14px calc(40px + env(safe-area-inset-bottom)) 14px; }
+
+    .hero { padding: 10px 0 14px; }
+    .hero h1 { font-size: 38px; text-shadow: 2px 2px 0 var(--yellow); }
+    .hero p { font-size: 15px; }
+
+    .subject-card { padding: 20px 16px; border-radius: 24px; }
+    .subject-emoji { font-size: 60px; }
+    .subject-name { font-size: 26px; word-break: break-word; hyphens: auto; }
+    .subject-card.unknown .subject-emoji { font-size: 50px; }
+    .subject-card.unknown .subject-name { font-size: 18px; }
+    .subject-card .small { font-size: 12px; }
+
+    .talk-card { padding: 18px; border-radius: 26px; }
+    .mic-btn-big {
+      width: 96px; height: 96px; font-size: 40px;
+      border-width: 3px;
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+    .mic-btn-big:hover { box-shadow: 5px 5px 0 var(--ink); }
+    .transcript-pane {
+      font-size: 17px; padding: 14px;
+      border-radius: 18px; min-height: 90px;
+    }
+
+    /* Bead strip — keep 7 beads in a row but tighten everything. */
+    .beads-hero { gap: 4px; margin-bottom: 12px; }
+    .bead-cell { padding: 8px 2px 10px; border-radius: 14px; border-width: 2px; }
+    .bead-circle { width: 30px; height: 30px; font-size: 13px; }
+    .bead-label { font-size: 10px; }
+    .bead-desc { font-size: 9px; margin-top: 2px; padding: 0; line-height: 1.15; }
+
+    .progress-row { font-size: 14px; }
+    .matched-list { padding: 12px; border-radius: 20px; }
+    .matched-row { padding: 8px 2px; }
+    .matched-row .label { width: 70px; font-size: 11px; }
+    .matched-row .phrase { font-size: 14px; }
+
+    .hint-banner { padding: 12px; border-radius: 18px; font-size: 14px; }
+
+    .actions { gap: 8px; }
+    .btn {
+      font-size: 15px; padding: 14px 12px;
+      min-width: 0; border-radius: 18px;
+      box-shadow: 3px 3px 0 var(--ink);
+      border-width: 2px;
+    }
+    .btn:hover { box-shadow: 4px 4px 0 var(--ink); }
+    .btn:active { box-shadow: 2px 2px 0 var(--ink); }
+
+    .summary-hero h2 { font-size: 32px; }
+    .summary-hero .emoji { font-size: 80px; }
+    .summary-hero p { font-size: 15px; }
+    .summary-hero .score { font-size: 18px; }
+    .recap-row { padding: 12px; border-radius: 18px; }
+    .recap-content { font-size: 15px; }
+    .transcript-box { font-size: 15px; padding: 14px; }
+  }
+
+  /* Extra-narrow phones (≤380px) — drop bead descriptions, tighten further */
+  @media (max-width: 380px) {
+    .hero h1 { font-size: 32px; }
+    .bead-circle { width: 26px; height: 26px; font-size: 12px; }
+    .bead-cell { padding: 6px 1px 8px; }
+    .bead-desc { display: none; }
+    .mic-btn-big { width: 84px; height: 84px; font-size: 34px; }
+    .subject-name { font-size: 22px; }
+  }
+
+  /* Bigger tap targets for tiny inline controls (Tell me again, hint ×) */
+  .change-link {
+    min-height: 32px;
+    padding: 4px 8px;
+    border-radius: 8px;
+  }
+  .hint-banner .dismiss {
+    min-width: 36px; min-height: 36px;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+</style>
+</head>
+<body>
+<div class="celebrate-banner" id="celebrate-banner">🎉 ALL 7 LIT! 🎉</div>
+<div class="app" id="app">
+  <section id="view-talk">
+    <div class="hero">
+      <h1>Describe It!</h1>
+      <p>Pick something to describe — a toy, an animal, your favorite snack — and tell me about it!</p>
+    </div>
+
+    <div class="ornament">❊</div>
+
+    <div class="subject-card unknown" id="subject-card">
+      <div class="subject-emoji" id="subject-emoji">💭</div>
+      <div class="subject-name" id="subject-name">Come up with something you want to tell me about!</div>
+      <div class="small" id="subject-small">A toy, an animal, a food, anything you can describe. Try saying "I want to tell you about…"</div>
+    </div>
+
+    <div class="beads-hero" id="beads-hero"></div>
+
+    <div class="ornament">❊</div>
+
+    <div class="hint-banner" id="hint-banner">
+      <div class="hint-bead" id="hint-bead"></div>
+      <div id="hint-text"></div>
+      <button class="dismiss" id="hint-dismiss">×</button>
+    </div>
+
+    <div class="talk-card">
+      <div class="talk-row">
+        <button class="mic-btn-big" id="mic-btn-big">🎤</button>
+        <div class="mic-status" id="mic-status">Tap the mic and tell me about it!</div>
+        <div class="transcript-pane" id="transcript-pane"></div>
+        <div class="speech-error" id="speech-error"></div>
+      </div>
+    </div>
+
+    <div class="progress-row">
+      <span><span class="count" id="lit-count">0</span> of 7 beads lit</span>
+      <span id="lit-cheer"></span>
+    </div>
+
+    <div class="matched-list" id="matched-list"></div>
+
+    <div class="actions">
+      <button class="btn btn-ghost" id="hint-btn">💡 Need a hint?</button>
+      <button class="btn btn-ghost" id="reset-btn">🔄 Start over</button>
+      <button class="btn btn-success" id="finish-btn">All done →</button>
+    </div>
+  </section>
+
+  <section id="view-summary" class="hidden">
+    <div class="summary-hero">
+      <div class="emoji" id="summary-emoji"></div>
+      <h2>Great job!</h2>
+      <p id="summary-subtitle"></p>
+      <div class="score" id="summary-score"></div>
+    </div>
+
+    <div class="recap-list" id="recap-list"></div>
+
+    <div class="transcript-box">
+      <h3>EVERYTHING YOU SAID</h3>
+      <div id="full-transcript"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="read-aloud">🔊 Read it back</button>
+      <button class="btn btn-success" id="summary-done">Tell me about something else</button>
+    </div>
+  </section>
+</div>
+
+<script>
+'use strict';
+
+// EET — 7 beads for describing a noun/object/concept.
+const STEPS = [
+  { key: 'group',   title: 'Group',     desc: 'What kind?',     color: 'var(--bead-group)',   light: false, glyph: '🟩', prompt: "What kind of thing is it? (Like a mammal, a vehicle, a food…)" },
+  { key: 'does',    title: 'Does',      desc: 'What it does',   color: 'var(--bead-does)',    light: false, glyph: '⚡', prompt: "What does it do? (Runs, flies, drives, rolls…)" },
+  { key: 'looks',   title: 'Looks',     desc: 'How it looks',   color: 'var(--bead-looks)',   light: true,  glyph: '👁️', prompt: "What does it look like? (Big? Small? What color?)" },
+  { key: 'covered', title: 'Covered',   desc: 'Made of',        color: 'var(--bead-covered)', light: false, glyph: '🟫', prompt: "What is it made of, or covered with? (Fur, metal, plastic, paint?)" },
+  { key: 'parts',   title: 'Parts',     desc: 'Its parts',      color: 'var(--bead-parts)',   light: false, glyph: '🧩', prompt: "What are its parts? (Legs, wheels, screen, pages…)" },
+  { key: 'lives',   title: 'Lives',     desc: 'Where',          color: 'var(--bead-lives)',   light: true,  glyph: '🏠', prompt: "Where is it? Where does it live or go? (Ocean, garage, kitchen…)" },
+  { key: 'funFact', title: 'Fun Fact',  desc: 'A cool fact',    color: 'var(--bead-funfact)', light: false, glyph: '❓', prompt: "Tell me a fun fact! Anything cool you know about it." }
+];
+
+const CLASSIFIER = {
+  group: {
+    keywords: [
+      'mammal','mammals','bird','birds','fish','fishes','reptile','reptiles','amphibian','amphibians',
+      'insect','insects','arachnid','invertebrate','crustacean','marsupial','rodent',
+      'vehicle','vehicles','toy','toys','food','fruit','fruits','vegetable','vegetables',
+      'plant','plants','tree','trees','flower','flowers','object','tool','tools',
+      'instrument','musical instrument','machine','appliance','dessert','drink','meal','snack',
+      'animal','creature','furniture','clothing','clothes','sport','game'
+    ],
+    phrases: [/\bit'?s (a|an) (kind of )?\w+/i, /\bit is (a|an) (kind of )?\w+/i, /\bkind of (animal|thing|vehicle|food)\b/i, /\btype of\b/i]
+  },
+  does: {
+    keywords: [
+      'swim','swims','swimming','fly','flies','flying','flew','hop','hops','hopping','jump','jumps','jumping',
+      'run','runs','running','eat','eats','eating','hunt','hunts','hunting',
+      'roar','roars','roaring','slither','slithers','crawl','crawls','crawling',
+      'climb','climbs','climbing','walk','walks','walking','dive','dives','diving',
+      'sleep','sleeps','sleeping','sing','sings','singing','chirp','chirps',
+      'bite','bites','biting','sting','stings','catch','catches','chase','chases',
+      'lay','lays','laying','dig','digs','digging','build','builds','building',
+      'glide','glides','soar','soars','poison','poisons','squirt','squirts',
+      'waddle','waddles','growl','growls','squeak','squeaks','bark','barks',
+      'breathe','breathes','migrate','migrates','hatch','hatches',
+      'drive','drives','driving','drove','roll','rolls','rolling','rolled',
+      'honk','honks','honking','beep','beeps','beeping','ring','rings','ringing','rang',
+      'go','goes','going','move','moves','moving','moved','work','works','working',
+      'spin','spins','spinning','stop','stops','start','starts','race','races','racing',
+      'bounce','bounces','bouncing','crash','crashes','blink','blinks',
+      'turn','turns','turning','open','opens','close','closes',
+      'grow','grows','growing','grew','ripen','ripens','bloom','blooms','smell','smells',
+      'taste','tastes','melt','melts','melting','bake','bakes','cook','cooks','fry','fries',
+      'play','plays','playing','played','draw','draws','write','writes','read','reads'
+    ],
+    phrases: [/\byou can (\w+) (it|with it)\b/i, /\bused (to|for)\b/i, /\bhelps (you|us) (\w+)/i]
+  },
+  looks: {
+    keywords: [
+      'big','small','tiny','huge','large','long','short','tall','fat','thin','skinny',
+      'round','square','flat','pointy','sharp','cute','scary','fluffy','spiky','smooth','rough','bumpy','shiny','dull',
+      'red','orange','yellow','green','blue','purple','pink','black','white','gray','grey','brown','golden','tan',
+      'silver','colorful','striped','spotted','rainbow'
+    ],
+    phrases: [/\blook(s)? like\b/i, /\blook(s)? (\w+)/i, /\bshape of\b/i, /\bcolor (of|is)\b/i]
+  },
+  covered: {
+    keywords: [
+      'fur','furry','feather','feathers','feathered','scale','scales','scaly','skin','shell','wool','hair','hairy','plumage',
+      'metal','metallic','steel','iron','aluminum','plastic','wood','wooden','glass','paper','cardboard','rubber','fabric','cloth','leather',
+      'paint','painted','silicone','foam','clay','stone','rock','rocks','concrete','ceramic'
+    ],
+    phrases: [/\bcovered (in|with)\b/i, /\bmade (out )?of\b/i, /\bmade (from|with)\b/i]
+  },
+  parts: {
+    keywords: [
+      'leg','legs','arm','arms','wing','wings','tail','tails',
+      'ear','ears','eye','eyes','nose','mouth','tooth','teeth','tongue',
+      'beak','claw','claws','fin','fins','gill','gills',
+      'trunk','tusk','tusks','paw','paws','horn','horns','antenna','antennae',
+      'mane','hoof','hooves','flipper','flippers','whisker','whiskers','sucker','suckers',
+      'pincer','pincers',
+      'wheel','wheels','tire','tires','door','doors','window','windows','seat','seats',
+      'handle','handles','button','buttons','screen','screens','page','pages',
+      'engine','engines','motor','battery','batteries','blade','blades','lid','lids',
+      'cap','caps','cover','covers','strap','straps','belt','belts','knob','knobs',
+      'pedal','pedals','steering wheel','headlight','headlights','bumper','bumpers',
+      'leaf','leaves','branch','branches','root','roots','stem','stems','petal','petals','trunk','seed','seeds','bark'
+    ],
+    phrases: [/\bit has (a |an |\d+ )?\w+/i, /\bwith (a |an |\d+ )?\w+/i]
+  },
+  lives: {
+    keywords: [
+      'ocean','sea','river','lake','pond','jungle','forest','rainforest',
+      'desert','savanna','savannah','mountain','mountains','tree','trees',
+      'cave','underground','arctic','antarctic','antarctica','africa','asia',
+      'america','australia','europe','water','land','sky','grassland','grasslands',
+      'tundra','ice','snow','swamp','marsh','reef','coral','burrow','nest','den','habitat',
+      'garage','garages','driveway','road','roads','street','streets','highway','highways','parking','parking lot',
+      'kitchen','bedroom','bathroom','living room','bath','basement','attic',
+      'fridge','refrigerator','table','tables','desk','desks','shelf','shelves','drawer','drawers',
+      'closet','closets','store','stores','shop','shops','restaurant','restaurants','school','schools',
+      'park','parks','garden','gardens','yard','yards','playground','playgrounds','airport','airports','station','farm','farms',
+      'tracks','runway','rail','rails'
+    ],
+    phrases: [/\blives (in|on|near|under|by)\b/i, /\bfound (in|on|near|by)\b/i, /\b(habitat|home) is\b/i, /\bdrives (on|along)\b/i, /\bgoes (in|on|to)\b/i, /\bkept (in|on)\b/i, /\bsits (in|on)\b/i]
+  },
+  funFact: {
+    keywords: ['did you know','fun fact','amazing','crazy','wow','actually','incredibly','believe','only'],
+    phrases: [/\bdid you know\b/i, /\bfun fact\b/i, /\bcoolest thing\b/i, /\bmost (\w+) thing\b/i]
+  }
+};
+
+// Subjects the child might describe. The app guesses the subject from their
+// speech; not having a match doesn't break anything — beads still light up
+// from EET cues.
+const SUBJECTS = {
+  // animals
+  'elephant':{canonical:'Elephant',emoji:'🐘'},'elephants':{canonical:'Elephant',emoji:'🐘'},
+  'penguin':{canonical:'Penguin',emoji:'🐧'},'penguins':{canonical:'Penguin',emoji:'🐧'},
+  'octopus':{canonical:'Octopus',emoji:'🐙'},
+  'lion':{canonical:'Lion',emoji:'🦁'},'lions':{canonical:'Lion',emoji:'🦁'},
+  'frog':{canonical:'Frog',emoji:'🐸'},'frogs':{canonical:'Frog',emoji:'🐸'},
+  'eagle':{canonical:'Eagle',emoji:'🦅'},'eagles':{canonical:'Eagle',emoji:'🦅'},
+  'shark':{canonical:'Shark',emoji:'🦈'},'sharks':{canonical:'Shark',emoji:'🦈'},
+  'snake':{canonical:'Snake',emoji:'🐍'},'snakes':{canonical:'Snake',emoji:'🐍'},
+  'dog':{canonical:'Dog',emoji:'🐶'},'dogs':{canonical:'Dog',emoji:'🐶'},'puppy':{canonical:'Puppy',emoji:'🐶'},'puppies':{canonical:'Puppy',emoji:'🐶'},
+  'cat':{canonical:'Cat',emoji:'🐱'},'cats':{canonical:'Cat',emoji:'🐱'},'kitten':{canonical:'Kitten',emoji:'🐱'},'kittens':{canonical:'Kitten',emoji:'🐱'},
+  'horse':{canonical:'Horse',emoji:'🐴'},'horses':{canonical:'Horse',emoji:'🐴'},
+  'cow':{canonical:'Cow',emoji:'🐮'},'cows':{canonical:'Cow',emoji:'🐮'},
+  'pig':{canonical:'Pig',emoji:'🐷'},'pigs':{canonical:'Pig',emoji:'🐷'},
+  'sheep':{canonical:'Sheep',emoji:'🐑'},
+  'rabbit':{canonical:'Rabbit',emoji:'🐰'},'rabbits':{canonical:'Rabbit',emoji:'🐰'},'bunny':{canonical:'Bunny',emoji:'🐰'},
+  'bear':{canonical:'Bear',emoji:'🐻'},'bears':{canonical:'Bear',emoji:'🐻'},
+  'panda':{canonical:'Panda',emoji:'🐼'},'pandas':{canonical:'Panda',emoji:'🐼'},
+  'koala':{canonical:'Koala',emoji:'🐨'},
+  'tiger':{canonical:'Tiger',emoji:'🐯'},'tigers':{canonical:'Tiger',emoji:'🐯'},
+  'monkey':{canonical:'Monkey',emoji:'🐵'},'monkeys':{canonical:'Monkey',emoji:'🐵'},
+  'fox':{canonical:'Fox',emoji:'🦊'},'foxes':{canonical:'Fox',emoji:'🦊'},
+  'wolf':{canonical:'Wolf',emoji:'🐺'},'wolves':{canonical:'Wolf',emoji:'🐺'},
+  'giraffe':{canonical:'Giraffe',emoji:'🦒'},'giraffes':{canonical:'Giraffe',emoji:'🦒'},
+  'zebra':{canonical:'Zebra',emoji:'🦓'},'zebras':{canonical:'Zebra',emoji:'🦓'},
+  'kangaroo':{canonical:'Kangaroo',emoji:'🦘'},'kangaroos':{canonical:'Kangaroo',emoji:'🦘'},
+  'whale':{canonical:'Whale',emoji:'🐋'},'whales':{canonical:'Whale',emoji:'🐋'},
+  'dolphin':{canonical:'Dolphin',emoji:'🐬'},'dolphins':{canonical:'Dolphin',emoji:'🐬'},
+  'butterfly':{canonical:'Butterfly',emoji:'🦋'},'butterflies':{canonical:'Butterfly',emoji:'🦋'},
+  'bee':{canonical:'Bee',emoji:'🐝'},'bees':{canonical:'Bee',emoji:'🐝'},
+  'spider':{canonical:'Spider',emoji:'🕷️'},'spiders':{canonical:'Spider',emoji:'🕷️'},
+  'turtle':{canonical:'Turtle',emoji:'🐢'},'turtles':{canonical:'Turtle',emoji:'🐢'},
+  'crab':{canonical:'Crab',emoji:'🦀'},'crabs':{canonical:'Crab',emoji:'🦀'},
+  'chicken':{canonical:'Chicken',emoji:'🐔'},'chickens':{canonical:'Chicken',emoji:'🐔'},
+  'duck':{canonical:'Duck',emoji:'🦆'},'ducks':{canonical:'Duck',emoji:'🦆'},
+  'fish':{canonical:'Fish',emoji:'🐟'},
+  'mouse':{canonical:'Mouse',emoji:'🐭'},'mice':{canonical:'Mouse',emoji:'🐭'},
+  'dinosaur':{canonical:'Dinosaur',emoji:'🦕'},'dinosaurs':{canonical:'Dinosaur',emoji:'🦕'},
+  't-rex':{canonical:'T-Rex',emoji:'🦖'},'trex':{canonical:'T-Rex',emoji:'🦖'},
+  'triceratops':{canonical:'Triceratops',emoji:'🦕'},
+  // vehicles
+  'car':{canonical:'Car',emoji:'🚗'},'cars':{canonical:'Car',emoji:'🚗'},
+  'truck':{canonical:'Truck',emoji:'🚚'},'trucks':{canonical:'Truck',emoji:'🚚'},
+  'fire truck':{canonical:'Fire Truck',emoji:'🚒'},'firetruck':{canonical:'Fire Truck',emoji:'🚒'},
+  'bus':{canonical:'Bus',emoji:'🚌'},'school bus':{canonical:'School Bus',emoji:'🚌'},
+  'train':{canonical:'Train',emoji:'🚂'},'trains':{canonical:'Train',emoji:'🚂'},
+  'plane':{canonical:'Airplane',emoji:'✈️'},'airplane':{canonical:'Airplane',emoji:'✈️'},
+  'helicopter':{canonical:'Helicopter',emoji:'🚁'},'helicopters':{canonical:'Helicopter',emoji:'🚁'},
+  'rocket':{canonical:'Rocket',emoji:'🚀'},'rockets':{canonical:'Rocket',emoji:'🚀'},
+  'boat':{canonical:'Boat',emoji:'⛵'},'boats':{canonical:'Boat',emoji:'⛵'},
+  'ship':{canonical:'Ship',emoji:'🚢'},'ships':{canonical:'Ship',emoji:'🚢'},
+  'bike':{canonical:'Bike',emoji:'🚲'},'bikes':{canonical:'Bike',emoji:'🚲'},
+  'bicycle':{canonical:'Bicycle',emoji:'🚲'},'bicycles':{canonical:'Bicycle',emoji:'🚲'},
+  'tractor':{canonical:'Tractor',emoji:'🚜'},'tractors':{canonical:'Tractor',emoji:'🚜'},
+  // food
+  'pizza':{canonical:'Pizza',emoji:'🍕'},
+  'apple':{canonical:'Apple',emoji:'🍎'},'apples':{canonical:'Apple',emoji:'🍎'},
+  'banana':{canonical:'Banana',emoji:'🍌'},'bananas':{canonical:'Banana',emoji:'🍌'},
+  'cake':{canonical:'Cake',emoji:'🍰'},'cakes':{canonical:'Cake',emoji:'🍰'},
+  'ice cream':{canonical:'Ice Cream',emoji:'🍦'},
+  'cookie':{canonical:'Cookie',emoji:'🍪'},'cookies':{canonical:'Cookie',emoji:'🍪'},
+  'hamburger':{canonical:'Hamburger',emoji:'🍔'},'burger':{canonical:'Burger',emoji:'🍔'},'burgers':{canonical:'Burger',emoji:'🍔'},
+  'sandwich':{canonical:'Sandwich',emoji:'🥪'},'sandwiches':{canonical:'Sandwich',emoji:'🥪'},
+  'pasta':{canonical:'Pasta',emoji:'🍝'},'spaghetti':{canonical:'Spaghetti',emoji:'🍝'},
+  'taco':{canonical:'Taco',emoji:'🌮'},'tacos':{canonical:'Taco',emoji:'🌮'},
+  'donut':{canonical:'Donut',emoji:'🍩'},'donuts':{canonical:'Donut',emoji:'🍩'},
+  'grape':{canonical:'Grape',emoji:'🍇'},'grapes':{canonical:'Grape',emoji:'🍇'},
+  'strawberry':{canonical:'Strawberry',emoji:'🍓'},'strawberries':{canonical:'Strawberry',emoji:'🍓'},
+  'orange':{canonical:'Orange',emoji:'🍊'},'oranges':{canonical:'Orange',emoji:'🍊'},
+  'watermelon':{canonical:'Watermelon',emoji:'🍉'},
+  'carrot':{canonical:'Carrot',emoji:'🥕'},'carrots':{canonical:'Carrot',emoji:'🥕'},
+  'corn':{canonical:'Corn',emoji:'🌽'},
+  // plants
+  'tree':{canonical:'Tree',emoji:'🌳'},'trees':{canonical:'Tree',emoji:'🌳'},
+  'flower':{canonical:'Flower',emoji:'🌸'},'flowers':{canonical:'Flower',emoji:'🌸'},
+  'rose':{canonical:'Rose',emoji:'🌹'},'roses':{canonical:'Rose',emoji:'🌹'},
+  'sunflower':{canonical:'Sunflower',emoji:'🌻'},'sunflowers':{canonical:'Sunflower',emoji:'🌻'},
+  'cactus':{canonical:'Cactus',emoji:'🌵'},
+  // sky / nature
+  'sun':{canonical:'Sun',emoji:'☀️'},'moon':{canonical:'Moon',emoji:'🌙'},
+  'star':{canonical:'Star',emoji:'⭐'},'stars':{canonical:'Star',emoji:'⭐'},
+  'cloud':{canonical:'Cloud',emoji:'☁️'},'clouds':{canonical:'Cloud',emoji:'☁️'},
+  'rainbow':{canonical:'Rainbow',emoji:'🌈'},'rainbows':{canonical:'Rainbow',emoji:'🌈'},
+  // places & objects
+  'house':{canonical:'House',emoji:'🏠'},'houses':{canonical:'House',emoji:'🏠'},
+  'castle':{canonical:'Castle',emoji:'🏰'},
+  // toys & objects
+  'ball':{canonical:'Ball',emoji:'⚽'},'balls':{canonical:'Ball',emoji:'⚽'},
+  'soccer ball':{canonical:'Soccer Ball',emoji:'⚽'},'basketball':{canonical:'Basketball',emoji:'🏀'},
+  'book':{canonical:'Book',emoji:'📖'},'books':{canonical:'Book',emoji:'📖'},
+  'computer':{canonical:'Computer',emoji:'💻'},'computers':{canonical:'Computer',emoji:'💻'},
+  'laptop':{canonical:'Laptop',emoji:'💻'},'laptops':{canonical:'Laptop',emoji:'💻'},
+  'phone':{canonical:'Phone',emoji:'📱'},'phones':{canonical:'Phone',emoji:'📱'},
+  'television':{canonical:'Television',emoji:'📺'},'tv':{canonical:'TV',emoji:'📺'},
+  'guitar':{canonical:'Guitar',emoji:'🎸'},'guitars':{canonical:'Guitar',emoji:'🎸'},
+  'piano':{canonical:'Piano',emoji:'🎹'},'pianos':{canonical:'Piano',emoji:'🎹'},
+  'drum':{canonical:'Drum',emoji:'🥁'},'drums':{canonical:'Drum',emoji:'🥁'},
+  'lego':{canonical:'Lego',emoji:'🧱'},'legos':{canonical:'Lego',emoji:'🧱'},
+  'robot':{canonical:'Robot',emoji:'🤖'},'robots':{canonical:'Robot',emoji:'🤖'},
+  'dinosaur toy':{canonical:'Dinosaur Toy',emoji:'🦖'},
+  'doll':{canonical:'Doll',emoji:'🪆'},'dolls':{canonical:'Doll',emoji:'🪆'},
+  'teddy bear':{canonical:'Teddy Bear',emoji:'🧸'},'teddy':{canonical:'Teddy Bear',emoji:'🧸'},
+  'crayon':{canonical:'Crayon',emoji:'🖍️'},'crayons':{canonical:'Crayon',emoji:'🖍️'},
+  'pencil':{canonical:'Pencil',emoji:'✏️'},'pencils':{canonical:'Pencil',emoji:'✏️'},
+};
+
+// ===== State =====
+const state = {
+  view: 'talk',
+  listening: false,
+  finalText: '',
+  interimText: '',
+  lit: {},                  // beadKey -> { phrase, sentence }
+  subject: null,
+  subjectVotes: {},
+  subjectLocked: false,
+  celebrated: false,
+};
+
+let recognition = null;
+let audioCtx = null;
+
+// ===== Views =====
+function show(view) {
+  document.getElementById('view-talk').classList.toggle('hidden', view !== 'talk');
+  document.getElementById('view-summary').classList.toggle('hidden', view !== 'summary');
+  state.view = view;
+}
+
+// ===== Beads =====
+function renderBeads() {
+  const host = document.getElementById('beads-hero');
+  host.innerHTML = '';
+  for (const step of STEPS) {
+    const cell = document.createElement('div');
+    cell.className = 'bead-cell' + (state.lit[step.key] ? ' lit' : '') + (step.light ? ' light' : '');
+    cell.dataset.key = step.key;
+    cell.innerHTML = `
+      <div class="bead-circle ${step.light ? 'light' : ''}" style="background:${step.color}">${step.glyph}</div>
+      <div class="bead-label">${step.title}</div>
+      <div class="bead-desc">${step.desc}</div>
+    `;
+    cell.addEventListener('click', () => showHint(step.key));
+    host.appendChild(cell);
+  }
+}
+
+function lightBead(key, phrase, sentence) {
+  if (state.lit[key]) return;
+  state.lit[key] = { phrase, sentence };
+  const cell = document.querySelector(`.bead-cell[data-key="${key}"]`);
+  if (cell) {
+    cell.classList.remove('lit');
+    void cell.offsetWidth;
+    cell.classList.add('lit');
+  }
+  renderMatchedList();
+  updateProgress();
+  chime();
+  if (Object.keys(state.lit).length === STEPS.length) celebrate();
+}
+
+function renderMatchedList() {
+  const host = document.getElementById('matched-list');
+  host.innerHTML = '';
+  for (const step of STEPS) {
+    const hit = state.lit[step.key];
+    if (!hit) continue;
+    const row = document.createElement('div');
+    row.className = 'matched-row';
+    row.innerHTML = `
+      <div class="dot" style="background:${step.color}"></div>
+      <div class="label">${step.title.toUpperCase()}</div>
+      <div class="phrase">${highlightInSentence(hit.sentence, hit.phrase)}</div>
+    `;
+    host.appendChild(row);
+  }
+}
+
+function updateProgress() {
+  const count = Object.keys(state.lit).length;
+  document.getElementById('lit-count').textContent = count;
+  const cheer = document.getElementById('lit-cheer');
+  if (count === 7)      cheer.innerHTML = '<span class="full">🎉 All lit! Amazing.</span>';
+  else if (count >= 5)  cheer.textContent = "You're so close!";
+  else if (count >= 3)  cheer.textContent = 'Great going!';
+  else if (count >= 1)  cheer.textContent = 'Keep going!';
+  else                  cheer.textContent = '';
+}
+
+// ===== Hints =====
+function showHint(key) {
+  const step = STEPS.find(s => s.key === key);
+  if (!step) return;
+  const banner = document.getElementById('hint-banner');
+  const bead = document.getElementById('hint-bead');
+  bead.style.background = step.color;
+  bead.textContent = step.glyph;
+  bead.className = 'hint-bead' + (step.light ? ' light' : '');
+  document.getElementById('hint-text').textContent = step.prompt;
+  banner.classList.add('show');
+}
+function hideHint() { document.getElementById('hint-banner').classList.remove('show'); }
+document.getElementById('hint-dismiss').addEventListener('click', hideHint);
+document.getElementById('hint-btn').addEventListener('click', () => {
+  const next = STEPS.find(s => !state.lit[s.key]);
+  if (next) showHint(next.key);
+});
+
+// ===== Subject detection =====
+
+// "I want to talk about ___" and friends.
+const EXPLICIT_INTROS = [
+  /\bi (?:want to|wanna) (?:talk|tell you|tell|describe) (?:about|to you about) (.+?)(?:[.!?]|$)/i,
+  /\blet me (?:tell you|describe|tell) (?:about|to you about) (.+?)(?:[.!?]|$)/i,
+  /\blet'?s (?:talk|discuss|chat) about (.+?)(?:[.!?]|$)/i,
+  /\bi'?m (?:going to|gonna|about to) (?:talk|tell you|tell|describe) (?:about|to you about) (.+?)(?:[.!?]|$)/i,
+  /\bi'?m (?:telling you|describing|talking) about (.+?)(?:[.!?]|$)/i,
+  /\bi'?ll (?:tell you|describe|talk) (?:about|to you about) (.+?)(?:[.!?]|$)/i,
+  /\bthis is about (.+?)(?:[.!?]|$)/i,
+  /\btalking about (.+?)(?:[.!?]|$)/i,
+];
+
+function extractExplicitSubject(sentence) {
+  for (const re of EXPLICIT_INTROS) {
+    const m = sentence.match(re);
+    if (m && m[1]) {
+      const phrase = cleanSubjectPhrase(m[1]);
+      if (phrase) return phrase;
+    }
+  }
+  return null;
+}
+
+function cleanSubjectPhrase(phrase) {
+  return phrase
+    .replace(/^(?:um|uh|like|the|a|an|some|my|your|our)\s+/i, '')
+    .replace(/\s+(?:today|now|please|first)\s*$/i, '')
+    .trim();
+}
+
+function subjectFromExplicitPhrase(phrase) {
+  const titled = phrase.split(/\s+/)
+    .map(w => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w)
+    .join(' ');
+  let emoji = '💭';
+  const keys = Object.keys(SUBJECTS).sort((a, b) => b.length - a.length);
+  const lower = phrase.toLowerCase();
+  for (const k of keys) {
+    if (new RegExp(`\\b${escapeReg(k)}\\b`, 'i').test(lower)) {
+      emoji = SUBJECTS[k].emoji; break;
+    }
+  }
+  return { canonical: titled, emoji };
+}
+
+function detectSubjectInSentence(sentence) {
+  const keys = Object.keys(SUBJECTS).sort((a, b) => b.length - a.length);
+  const lower = sentence.toLowerCase();
+  for (const key of keys) {
+    const re = new RegExp(`\\b${escapeReg(key)}\\b`, 'i');
+    if (re.test(lower)) return { key, ...SUBJECTS[key] };
+  }
+  return null;
+}
+
+function updateSubject(sentence) {
+  // 1) Explicit "I want to talk about X" wins and locks the subject.
+  const explicit = extractExplicitSubject(sentence);
+  if (explicit) {
+    const s = subjectFromExplicitPhrase(explicit);
+    state.subject = s;
+    state.subjectLocked = true;
+    renderSubject();
+    return;
+  }
+  if (state.subjectLocked) return;
+  // 2) Vocab-based vote counting otherwise.
+  const found = detectSubjectInSentence(sentence);
+  if (!found) return;
+  const c = found.canonical;
+  const entry = state.subjectVotes[c] || { count: 0, emoji: found.emoji };
+  entry.count++;
+  state.subjectVotes[c] = entry;
+  let best = null;
+  for (const [k, v] of Object.entries(state.subjectVotes)) {
+    if (!best || v.count > best.count) best = { canonical: k, emoji: v.emoji, count: v.count };
+  }
+  if (best && (!state.subject || state.subject.canonical !== best.canonical)) {
+    state.subject = { canonical: best.canonical, emoji: best.emoji };
+    renderSubject();
+  }
+}
+
+function renderSubject() {
+  const card = document.getElementById('subject-card');
+  const emoji = document.getElementById('subject-emoji');
+  const name = document.getElementById('subject-name');
+  const small = document.getElementById('subject-small');
+  if (state.subject) {
+    card.classList.remove('unknown');
+    card.classList.add('detected');
+    setTimeout(() => card.classList.remove('detected'), 700);
+    emoji.textContent = state.subject.emoji;
+    name.textContent = state.subject.canonical;
+    small.innerHTML = `<span style="color:var(--muted)">Not quite right?</span> <span class="change-link" id="change-subject">Tell me again</span>`;
+    document.getElementById('change-subject').addEventListener('click', () => {
+      state.subject = null;
+      state.subjectVotes = {};
+      state.subjectLocked = false;
+      renderSubject();
+    });
+  } else {
+    card.classList.remove('detected');
+    card.classList.add('unknown');
+    emoji.textContent = '💭';
+    name.textContent = 'Come up with something you want to tell me about!';
+    small.textContent = 'A toy, an animal, a food, anything you can describe. Try saying "I want to tell you about…"';
+  }
+}
+
+// ===== EET classifier =====
+function classify(text) {
+  const lower = text.toLowerCase();
+  const fired = [];
+  for (const [key, def] of Object.entries(CLASSIFIER)) {
+    if (key === 'funFact') continue;
+    if (state.lit[key]) continue;
+    let matched = null;
+    for (const kw of def.keywords) {
+      const re = new RegExp(`\\b${escapeReg(kw)}\\b`, 'i');
+      const m = lower.match(re);
+      if (m) { matched = m[0]; break; }
+    }
+    if (!matched) {
+      for (const re of def.phrases) {
+        const m = text.match(re);
+        if (m) { matched = m[0]; break; }
+      }
+    }
+    if (matched) fired.push({ key, phrase: matched });
+  }
+  if (!state.lit.funFact) {
+    const ff = CLASSIFIER.funFact;
+    let ffPhrase = null;
+    for (const kw of ff.keywords) {
+      const re = new RegExp(`\\b${escapeReg(kw)}\\b`, 'i');
+      const m = lower.match(re);
+      if (m) { ffPhrase = m[0]; break; }
+    }
+    if (!ffPhrase) {
+      for (const re of ff.phrases) {
+        const m = text.match(re);
+        if (m) { ffPhrase = m[0]; break; }
+      }
+    }
+    if (!ffPhrase && fired.length === 0 && wordCount(text) >= 4) ffPhrase = text.trim();
+    if (ffPhrase) fired.push({ key: 'funFact', phrase: ffPhrase });
+  }
+  return fired;
+}
+
+function escapeReg(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function wordCount(s) { return s.trim().split(/\s+/).filter(Boolean).length; }
+
+function consumeNewFinal(newChunk) {
+  if (!newChunk) return;
+  const sentences = newChunk.split(/(?<=[.!?])\s+|(?<=,)\s+(?=and\b|but\b)/i);
+  for (const sentence of sentences) {
+    const s = sentence.trim();
+    if (!s) continue;
+    updateSubject(s);
+    const fired = classify(s);
+    for (const f of fired) lightBead(f.key, f.phrase, s);
+  }
+}
+
+function highlightInSentence(sentence, phrase) {
+  if (!sentence || !phrase) return escapeHTML(sentence || '');
+  const idx = sentence.toLowerCase().indexOf(phrase.toLowerCase());
+  if (idx < 0) return escapeHTML(sentence);
+  return escapeHTML(sentence.slice(0, idx))
+       + '<mark>' + escapeHTML(sentence.slice(idx, idx + phrase.length)) + '</mark>'
+       + escapeHTML(sentence.slice(idx + phrase.length));
+}
+function escapeHTML(s='') {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ===== Speech recognition =====
+function setupRecognition() {
+  const Recog = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recog) {
+    document.getElementById('speech-error').textContent =
+      'Speech recognition isn\'t available in this browser — try Chrome on localhost.';
+    return null;
+  }
+  const r = new Recog();
+  r.lang = 'en-US';
+  r.interimResults = true;
+  r.continuous = true;
+  r.onresult = (e) => {
+    let interim = '';
+    let newFinal = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) newFinal += t + ' ';
+      else interim += t;
+    }
+    if (newFinal) {
+      state.finalText += newFinal;
+      consumeNewFinal(newFinal);
+    }
+    state.interimText = interim;
+    renderTranscript();
+  };
+  r.onerror = (e) => {
+    document.getElementById('speech-error').textContent = `Speech error: ${e.error}`;
+  };
+  r.onend = () => {
+    state.listening = false;
+    document.getElementById('mic-btn-big').classList.remove('listening');
+    document.getElementById('mic-btn-big').textContent = '🎤';
+    document.getElementById('mic-status').textContent =
+      state.finalText ? 'Tap mic to keep going' : 'Tap mic and try again';
+    if (state.shouldKeepListening) {
+      setTimeout(() => { try { recognition.start(); state.listening = true;
+        document.getElementById('mic-btn-big').classList.add('listening');
+        document.getElementById('mic-btn-big').textContent = '⏹';
+        document.getElementById('mic-status').textContent = 'Listening… keep talking!';
+      } catch(e){} }, 200);
+    }
+  };
+  return r;
+}
+
+function renderTranscript() {
+  const pane = document.getElementById('transcript-pane');
+  pane.innerHTML = escapeHTML(state.finalText)
+    + (state.interimText ? `<span class="interim">${escapeHTML(state.interimText)}</span>` : '');
+}
+
+function startListening() {
+  if (!recognition) recognition = setupRecognition();
+  if (!recognition) return;
+  if (state.listening) return;
+  document.getElementById('speech-error').textContent = '';
+  state.shouldKeepListening = true;
+  try {
+    recognition.start();
+    state.listening = true;
+    document.getElementById('mic-btn-big').classList.add('listening');
+    document.getElementById('mic-btn-big').textContent = '⏹';
+    document.getElementById('mic-status').textContent = 'Listening… keep talking!';
+  } catch (e) {
+    setTimeout(() => {
+      try { recognition.start(); state.listening = true;
+            document.getElementById('mic-btn-big').classList.add('listening');
+            document.getElementById('mic-btn-big').textContent = '⏹';
+            document.getElementById('mic-status').textContent = 'Listening… keep talking!';
+      } catch(e2) { document.getElementById('speech-error').textContent = String(e2); }
+    }, 250);
+  }
+}
+
+function stopListening() {
+  state.shouldKeepListening = false;
+  if (recognition && state.listening) { try { recognition.stop(); } catch(e){} }
+}
+
+document.getElementById('mic-btn-big').addEventListener('click', () => {
+  if (state.listening) stopListening(); else startListening();
+});
+
+// ===== Reset / Finish =====
+function resetAll() {
+  stopListening();
+  state.finalText = '';
+  state.interimText = '';
+  state.lit = {};
+  state.subject = null;
+  state.subjectVotes = {};
+  state.subjectLocked = false;
+  state.celebrated = false;
+  document.getElementById('transcript-pane').innerHTML = '';
+  hideHint();
+  renderBeads();
+  renderMatchedList();
+  updateProgress();
+  renderSubject();
+  document.getElementById('mic-status').textContent = 'Tap the mic and tell me about it!';
+  setTimeout(startListening, 100);
+}
+
+document.getElementById('reset-btn').addEventListener('click', resetAll);
+
+document.getElementById('finish-btn').addEventListener('click', () => {
+  stopListening();
+  renderSummary();
+  show('summary');
+});
+
+// ===== Celebration =====
+function celebrate() {
+  if (state.celebrated) return;
+  state.celebrated = true;
+  fanfare();
+  burstConfetti();
+  document.body.classList.add('celebrating');
+  const banner = document.getElementById('celebrate-banner');
+  banner.classList.add('show');
+  setTimeout(() => banner.classList.remove('show'), 2400);
+  setTimeout(() => document.body.classList.remove('celebrating'), 2600);
+}
+
+function fanfare() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    // Ascending major arpeggio + a sparkly tag at the end. Each note plays
+    // through a triangle oscillator with a quick attack/release envelope.
+    const notes = [
+      [523, 0.00, 0.18],   // C5
+      [659, 0.12, 0.18],   // E5
+      [784, 0.24, 0.18],   // G5
+      [1046, 0.36, 0.32],  // C6 (held)
+      [1318, 0.62, 0.18],  // E6 sparkle
+      [1568, 0.74, 0.40],  // G6 finish (held)
+    ];
+    for (const [freq, t, dur] of notes) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const start = audioCtx.currentTime + t;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.22, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(start);
+      osc.stop(start + dur + 0.02);
+    }
+  } catch(e) {}
+}
+
+function burstConfetti() {
+  const colors = ['#FFA000', '#FFEC66', '#73A8D3', '#6FB672', '#E04A3F', '#F78CBF', '#FFFFFF'];
+  for (let i = 0; i < 60; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = (Math.random() * 100) + 'vw';
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.width = (8 + Math.random() * 8) + 'px';
+    c.style.height = (12 + Math.random() * 10) + 'px';
+    c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+    c.style.animationDelay = (Math.random() * 0.5) + 's';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4500);
+  }
+}
+
+// ===== Tiny chime =====
+function chime() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.15, audioCtx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.25);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.27);
+  } catch(e) {}
+}
+
+// ===== Summary =====
+function renderSummary() {
+  const subj = state.subject || { canonical: 'your idea', emoji: '💭' };
+  document.getElementById('summary-emoji').textContent = subj.emoji;
+  document.getElementById('summary-subtitle').textContent =
+    state.subject ? `Here's what you told me about a ${subj.canonical.toLowerCase()}.`
+                  : `Here's everything you described.`;
+  const lit = Object.keys(state.lit).length;
+  const score = document.getElementById('summary-score');
+  score.textContent = lit === 7 ? '🎉 You hit all 7!' : `You lit up ${lit} of 7 beads.`;
+  score.classList.toggle('full', lit === 7);
+
+  const list = document.getElementById('recap-list');
+  list.innerHTML = '';
+  for (const step of STEPS) {
+    const hit = state.lit[step.key];
+    const row = document.createElement('div');
+    row.className = 'recap-row' + (hit ? '' : ' unlit');
+    const bead = `<div class="recap-bead ${step.light ? 'light' : ''}" style="background:${step.color}">${step.glyph}</div>`;
+    const body = hit
+      ? `<div class="recap-label">${step.title.toUpperCase()}</div>
+         <div class="recap-content">${highlightInSentence(hit.sentence, hit.phrase)}</div>`
+      : `<div class="recap-label">${step.title.toUpperCase()}</div>
+         <div class="recap-content unmatched">— not covered —</div>`;
+    row.innerHTML = `${bead}<div class="recap-body">${body}</div>`;
+    list.appendChild(row);
+  }
+  document.getElementById('full-transcript').textContent =
+    state.finalText.trim() || '(nothing recorded)';
+}
+
+document.getElementById('read-aloud').addEventListener('click', () => {
+  const text = state.finalText.trim();
+  if (!text || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 0.95;
+  u.pitch = 1.05;
+  window.speechSynthesis.speak(u);
+});
+
+document.getElementById('summary-done').addEventListener('click', () => {
+  window.speechSynthesis?.cancel();
+  resetAll();
+  show('talk');
+});
+
+// ===== iOS audio unlock =====
+// On iOS Safari, AudioContext starts in 'suspended' state until a user
+// gesture resumes it. Wire up a one-time unlock on the first tap anywhere.
+function unlockAudio() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch (e) {}
+}
+['touchstart', 'pointerdown', 'click'].forEach(ev =>
+  document.addEventListener(ev, unlockAudio, { once: true, passive: true })
+);
+
+// ===== Init =====
+renderBeads();
+renderMatchedList();
+updateProgress();
+renderSubject();
+show('talk');
+</script>
+</body>
+</html>
