@@ -1177,6 +1177,10 @@ document.getElementById('finish-btn').addEventListener('click', () => {
 function celebrate() {
   if (state.celebrated) return;
   state.celebrated = true;
+  // Mission accomplished — stop listening. The mic button is still there if the
+  // child wants to keep talking, and "Start over" restarts a fresh session.
+  stopListening();
+  document.getElementById('mic-status').textContent = '🎉 You got all 7! Tap mic to keep going.';
   fanfare();
   burstConfetti();
   document.body.classList.add('celebrating');
