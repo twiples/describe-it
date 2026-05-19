@@ -777,6 +777,37 @@ const SUBJECTS = {
   'pencil':{canonical:'Pencil',emoji:'✏️'},'pencils':{canonical:'Pencil',emoji:'✏️'},
 };
 
+// Each vocab subject implicitly belongs to a category. Once the subject card
+// resolves, we light the Group bead with the inferred category — kids don't
+// naturally produce genus statements ("a dog is an animal") and shouldn't be
+// penalized for it. The vocab already encodes the answer.
+const SUBJECT_GROUPS = {
+  'an animal': ['Elephant','Penguin','Octopus','Lion','Frog','Eagle','Shark','Snake',
+                'Dog','Puppy','Cat','Kitten','Horse','Cow','Pig','Sheep','Rabbit','Bunny',
+                'Bear','Panda','Koala','Tiger','Monkey','Fox','Wolf','Giraffe','Zebra',
+                'Kangaroo','Whale','Dolphin','Butterfly','Bee','Spider','Turtle','Crab',
+                'Chicken','Duck','Fish','Mouse','Dinosaur','T-Rex','Triceratops'],
+  'a vehicle': ['Car','Truck','Fire Truck','Bus','School Bus','Train','Airplane',
+                'Helicopter','Rocket','Boat','Ship','Bike','Bicycle','Tractor'],
+  'a food':    ['Pizza','Apple','Banana','Cake','Ice Cream','Cookie','Hamburger','Burger',
+                'Sandwich','Pasta','Spaghetti','Taco','Donut','Grape','Strawberry',
+                'Orange','Watermelon','Carrot','Corn'],
+  'a plant':   ['Tree','Flower','Rose','Sunflower','Cactus'],
+  'a thing in the sky': ['Sun','Moon','Star','Cloud','Rainbow'],
+  'a place':   ['House','Castle'],
+  'a toy':     ['Ball','Soccer Ball','Basketball','Lego','Robot','Dinosaur Toy','Doll','Teddy Bear'],
+  'an instrument': ['Guitar','Piano','Drum'],
+  'an object': ['Book','Computer','Laptop','Phone','Television','TV','Crayon','Pencil']
+};
+
+function groupForSubject(canonical) {
+  if (!canonical) return null;
+  for (const [group, list] of Object.entries(SUBJECT_GROUPS)) {
+    if (list.includes(canonical)) return group;
+  }
+  return null;
+}
+
 // ===== State =====
 const state = {
   view: 'talk',
@@ -945,6 +976,7 @@ function updateSubject(sentence) {
     state.subject = s;
     state.subjectLocked = true;
     renderSubject();
+    autoLightGroupFromSubject();
     return;
   }
   if (state.subjectLocked) return;
@@ -962,7 +994,19 @@ function updateSubject(sentence) {
   if (best && (!state.subject || state.subject.canonical !== best.canonical)) {
     state.subject = { canonical: best.canonical, emoji: best.emoji };
     renderSubject();
+    autoLightGroupFromSubject();
   }
+}
+
+// Light the Group bead automatically when the subject resolves to a known
+// vocab item. Genus categorization ("a dog is an animal") is cognitively
+// hard for young kids; the app shouldn't gate completion on it.
+function autoLightGroupFromSubject() {
+  if (state.lit.group || !state.subject) return;
+  const group = groupForSubject(state.subject.canonical);
+  if (!group) return;
+  const sentence = `A ${state.subject.canonical.toLowerCase()} is ${group}.`;
+  lightBead('group', group, sentence);
 }
 
 function renderSubject() {
@@ -988,7 +1032,7 @@ function renderSubject() {
     card.classList.add('unknown');
     emoji.textContent = '💭';
     name.textContent = 'Come up with something you want to tell me about!';
-    small.textContent = 'A toy, an animal, a food, anything you can describe. Try saying "I want to tell you about…"';
+    small.innerHTML = 'Try starting with: <em style="color:var(--ink); font-style:normal; font-weight:600;">"I want to tell you about a ___ — it\'s a ___!"</em><br><span style="color:var(--muted);">A toy, an animal, a food, anything you can describe.</span>';
   }
 }
 
